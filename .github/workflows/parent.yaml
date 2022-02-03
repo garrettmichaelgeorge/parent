@@ -1,0 +1,55 @@
+name: parent
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      CACHE_VERSION: v1
+      CHECK_FORMAT: true
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: '1.10'
+          otp-version: '22.0'
+
+      - name: Cache dependencies and build
+        uses: actions/cache@v2
+        with:
+          key: |
+            ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-
+          path: |
+            deps
+            _build
+
+      - name: Install dependencies
+        run: mix deps.get
+
+      - name: Compile project
+        run: |
+          MIX_ENV=test mix compile --warnings-as-errors
+          MIX_ENV=dev mix compile --warnings-as-errors
+          MIX_ENV=prod mix compile --warnings-as-error
+
+      - name: Generate docs
+        run: mix docs
+
+      - name: Run tests
+        run: mix test
+
+      - name: Check Elixir formatting
+        run: if [ "$CHECK_FORMAT" == "true" ]; then mix format --check-formatted; fi

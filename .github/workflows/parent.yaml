@@ -1,41 +1,39 @@
 name: parent
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - '*'
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
     env:
-      CACHE_VERSION: v1,
+      CACHE_VERSION: v1
       CHECK_FORMAT: true
 
     steps:
       - uses: actions/checkout@v2
 
-      - uses: erlef/setup-beam@v1
+      - name: Set up Elixir
+        uses: erlef/setup-beam@v1
         with:
           elixir-version: '1.10'
           otp-version: '22.0'
 
-      - name: Restore cached deps
-        uses: actions/cache@v1
+      - name: Cache dependencies and build
+        uses: actions/cache@v2
         with:
-          path: deps
-          key: deps-${{ env.CACHE_VERSION }}-${{ github.ref }}-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
-            deps-${{ env.CACHE_VERSION }}-${{ github.ref }}-
-            deps-${{ env.CACHE_VERSION }}-
-
-      - name: Restore cached build
-        uses: actions/cache@v1
-        with:
-          path: _build
-          key: build-${{ env.CACHE_VERSION }}-${{ github.ref }}-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
-
-          restore-keys: |
-            build-${{ env.CACHE_VERSION }}-${{ github.ref }}-
-            build-${{ env.CACHE_VERSION }}-
+            ${{ runner.os }}-mix-
 
       - run: mix deps.get
 

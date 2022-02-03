@@ -28,14 +28,16 @@ jobs:
       - name: Cache dependencies and build
         uses: actions/cache@v2
         with:
+          key: |
+            ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-
           path: |
             deps
             _build
-          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-mix-
 
-      - run: mix deps.get
+      - name: Install dependencies
+        run: mix deps.get
 
       - name: Compile project
         run: |
@@ -43,6 +45,11 @@ jobs:
           MIX_ENV=dev mix compile --warnings-as-errors
           MIX_ENV=prod mix compile --warnings-as-error
 
-      - run: mix docs
-      - run: mix test
-      - run: if [ "$CHECK_FORMAT" == "true" ]; then mix format --check-formatted; fi
+      - name: Generate docs
+        run: mix docs
+
+      - name: Run tests
+        run: mix test
+
+      - name: Check Elixir formatting
+        run: if [ "$CHECK_FORMAT" == "true" ]; then mix format --check-formatted; fi

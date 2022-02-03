@@ -1,19 +1,19 @@
-name: parent
+name: parent-dialyzer
 
 on: [push, pull_request]
 
 jobs:
-  test:
+  dialyzer:
     runs-on: ubuntu-latest
 
     env:
-      CACHE_VERSION: v1,
-      CHECK_FORMAT: true
+      CACHE_VERSION: v1
 
     steps:
       - uses: actions/checkout@v2
 
-      - uses: erlef/setup-elixir@v1
+      - name: Set up Elixir
+        uses: erlef/setup-elixir@v1
         with:
           otp-version: 22.0
           elixir-version: 1.10
@@ -32,19 +32,13 @@ jobs:
         with:
           path: _build
           key: build-${{ env.CACHE_VERSION }}-${{ github.ref }}-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
-
           restore-keys: |
             build-${{ env.CACHE_VERSION }}-${{ github.ref }}-
             build-${{ env.CACHE_VERSION }}-
 
-      - run: mix deps.get
-
-      - name: Compile project
-        run: |
-          MIX_ENV=test mix compile --warnings-as-errors
-          MIX_ENV=dev mix compile --warnings-as-errors
-          MIX_ENV=prod mix compile --warnings-as-error
-
-      - run: mix docs
-      - run: mix test
-      - run: if [ "$CHECK_FORMAT" == "true" ]; then mix format --check-formatted; fi
+      - name: Install dependencies
+        run: mix deps.get
+      - name: Generate PLT
+        run: mix dialyzer --plt
+      - name: Run Dialyzer
+        run: mix dialyzer
